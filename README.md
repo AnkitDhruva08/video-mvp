@@ -233,6 +233,44 @@ Let me know if you want to switch to Pillow-only rendering, or need help editing
 
 
 
+video-mvp/
+├── backend/
+│   ├── app.py (or server.js/index.js if using Node.js)
+│   ├── routes/
+│   │   ├── auth.py
+│   │   ├── video.py
+│   │   └── instagram.py
+│   ├── services/
+│   │   ├── openai_service.py
+│   │   ├── veed_service.py
+│   │   ├── drive_service.py
+│   │   └── publer_service.py
+│   ├── utils/
+│   │   └── helpers.py
+│   ├── config/
+│   │   └── settings.py or .env
+│   └── requirements.txt / package.json
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── App.js
+│   │   └── index.js
+│   └── package.json
+│
+├── database/
+│   └── users.db (or Mongo/PostgreSQL setup)
+│
+├── deploy/
+│   └── docker-compose.yml / vercel.json / fly.toml
+│
+├── .env
+└── README.md
+
+
+
 
 
 
