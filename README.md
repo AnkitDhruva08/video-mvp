@@ -233,41 +233,53 @@ Let me know if you want to switch to Pillow-only rendering, or need help editing
 
 
 
+# 🎥 Video MVP - AI-Powered Video Generator
+
+This is a full-stack application to generate, store, and post AI-generated short videos using OpenAI, Google Drive, Instagram, and other APIs.
+
+---
+
+## 📁 Project Structure
+
+```bash
 video-mvp/
-├── backend/
-│   ├── app.py (or server.js/index.js if using Node.js)
-│   ├── routes/
-│   │   ├── auth.py
-│   │   ├── video.py
-│   │   └── instagram.py
-│   ├── services/
-│   │   ├── openai_service.py
-│   │   ├── veed_service.py
-│   │   ├── drive_service.py
-│   │   └── publer_service.py
+├── backend/                   # Backend services and APIs
+│   ├── app.py                 # Main backend entry point (Flask/FastAPI/Node.js)
+│   ├── routes/               # API route handlers
+│   │   ├── auth.py           # Authentication routes (login, signup, etc.)
+│   │   ├── video.py          # Video generation and retrieval routes
+│   │   └── instagram.py      # Instagram posting integration
+│   ├── services/             # External API services logic
+│   │   ├── openai_service.py # Handles OpenAI API for script generation
+│   │   ├── veed_service.py   # Handles video creation (e.g., with VEED or other tools)
+│   │   ├── drive_service.py  # Google Drive upload and management
+│   │   └── publer_service.py # Optional scheduler/poster integration (e.g., Publer)
 │   ├── utils/
-│   │   └── helpers.py
+│   │   └── helpers.py        # Utility/helper functions
 │   ├── config/
-│   │   └── settings.py or .env
-│   └── requirements.txt / package.json
+│   │   └── settings.py       # Configuration settings (or load from .env)
+│   └── requirements.txt      # Python dependencies (or package.json if Node.js)
 │
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── App.js
-│   │   └── index.js
-│   └── package.json
+├── frontend/                 # React frontend application
+│   ├── public/               # Static assets
+│   ├── src/                  # React source code
+│   │   ├── components/       # Reusable UI components
+│   │   ├── pages/            # Page-level components (e.g., Dashboard, Login)
+│   │   ├── App.js            # App root component
+│   │   └── index.js          # React DOM entry point
+│   └── package.json          # Frontend dependencies and scripts
 │
-├── database/
-│   └── users.db (or Mongo/PostgreSQL setup)
+├── database/                 # Database files or configs
+│   └── users.db              # Example SQLite DB (or connection config for MongoDB/PostgreSQL)
 │
-├── deploy/
-│   └── docker-compose.yml / vercel.json / fly.toml
+├── deploy/                   # Deployment configurations
+│   └── docker-compose.yml    # Docker config for backend/frontend
+│   └── vercel.json           # Vercel config for frontend (optional)
+│   └── fly.toml              # Fly.io config (optional)
 │
-├── .env
-└── README.md
+├── .env                      # Environment variables (API keys, DB URIs, etc.)
+└── README.md                 # Project overview and documentation
+
 
 
 
