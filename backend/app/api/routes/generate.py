@@ -8,10 +8,11 @@ import json
 import os
 from datetime import datetime
 from gtts import gTTS
-from moviepy.editor import AudioFileClip, ColorClip, CompositeVideoClip, ImageClip
+from moviepy.editor import AudioFileClip, ColorClip, CompositeVideoClip, TextClip
 from moviepy.config import change_settings
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageFont
 import textwrap
+import re
 
 router = APIRouter()
 
@@ -27,7 +28,17 @@ change_settings({"IMAGEMAGICK_BINARY": "/usr/bin/convert"})
 async def generate_script(data: TopicRequest, db: Session = Depends(get_db)):
     print("⏩ Received request from frontend with topic:", data.topic)
     try:
-        prompt = f"Write a short engaging script (50-100 words) for a video on: {data.topic}"
+        prompt = f"""Write a short engaging script (50-100 words) for a video on: {data.topic}.
+        Structure it with distinct segments, like:
+        [Segment 1: Title]
+        Narrator: "..."
+        [Segment 2: Topic Point 1]
+        Narrator: "..."
+        [Segment 3: Topic Point 2]
+        Narrator: "..."
+        [Segment 4: Conclusion]
+        Narrator: "..."
+        """
         print("📝 Generated prompt for model:", prompt)
 
         response = requests.post(
@@ -52,7 +63,6 @@ async def generate_script(data: TopicRequest, db: Session = Depends(get_db)):
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         base_filename = f"{data.topic.replace(' ', '_')}_{timestamp}"
 
-        # new_video = Video(title=data.topic, script=full_script)
         new_video = Video(
             title=data.topic,
             script=full_script,
@@ -62,13 +72,10 @@ async def generate_script(data: TopicRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_video)
         print(f"💾 Saved script to DB with ID {new_video.id}")
-
-      
         
         audio_path = os.path.join(VIDEO_FOLDER, base_filename + ".mp3")
         video_path = os.path.join(VIDEO_FOLDER, base_filename + ".mp4")
-        temp_text_image_path = os.path.join(VIDEO_FOLDER, f"temp_text_{timestamp}.png")
-
+        
         print("🔊 Generating speech audio...")
         tts = gTTS(text=full_script)
         tts.save(audio_path)
@@ -78,53 +85,51 @@ async def generate_script(data: TopicRequest, db: Session = Depends(get_db)):
 
         background_clip = ColorClip(size=(1280, 720), color=(0, 0, 0), duration=duration)
 
-        image_size = (1280, 720)
-        text_color = (255, 255, 255)
-        bg_color = (0, 0, 0, 0)
+        all_video_elements = []
+        current_time = 0
 
-        text_image = Image.new('RGBA', image_size, bg_color)
-        draw = ImageDraw.Draw(text_image)
+        sentences = re.split(r'(?<=[.!?])\s+', full_script)
+        
+        words_per_second = len(full_script.split()) / duration
+        
+        text_clips = []
 
-        font_path = "arial.ttf"
-        font_size = 60
-        try:
-            font = ImageFont.truetype(font_path, font_size)
-        except IOError:
-            print(f"Font '{font_path}' not found, using default font.")
-            font = ImageFont.load_default()
+        for sentence in sentences:
+            sentence_words = len(sentence.split())
+            sentence_duration = sentence_words / words_per_second if words_per_second > 0 else (duration / len(sentences))
 
-        max_pixel_width = image_size[0] - 100
-        sample_char_width = font.getlength('M')
-        if sample_char_width == 0:
-            chars_per_line = int(max_pixel_width / (font_size * 0.5))
-        else:
-            chars_per_line = int(max_pixel_width / sample_char_width)
+            txt_clip = (TextClip(sentence,
+                                 fontsize=50,
+                                 color='white',
+                                 font='Arial-Bold',
+                                 stroke_color='black',
+                                 stroke_width=1,
+                                 size=(1280 - 100, None),
+                                 method='caption',
+                                 align='center'
+                                )
+                        .set_position('center')
+                        .set_duration(sentence_duration)
+                        .set_start(current_time)
+                        .set_fps(24))
+            text_clips.append(txt_clip)
 
-        chars_per_line = max(chars_per_line, 20)
-        wrapped_text = textwrap.fill(data.topic, width=chars_per_line)
+            current_time += sentence_duration
+        
+        final_clips = []
+        for clip in text_clips:
+            if clip.end > duration:
+                clip = clip.set_end(duration)
+            final_clips.append(clip)
 
-        bbox = draw.textbbox((0, 0), wrapped_text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        x = (image_size[0] - text_width) / 2
-        y = (image_size[1] - text_height) / 2
-
-        draw.text((x, y), wrapped_text, font=font, fill=text_color)
-        text_image.save(temp_text_image_path)
-
-        text_clip = ImageClip(temp_text_image_path, duration=duration).set_fps(24).set_position('center')
-
-        video = CompositeVideoClip([background_clip, text_clip])
+        video = CompositeVideoClip([background_clip] + final_clips, size=(1280, 720))
         video = video.set_audio(audio_clip)
 
         print(f"🎥 Writing final video to: {video_path}")
-        video.write_videofile(video_path, codec="libx264", audio_codec="aac")
+        video.write_videofile(video_path, codec="libx264", audio_codec="aac", fps=24)
 
-        # ✅ Cleanup temp files
         if os.path.exists(audio_path):
             os.remove(audio_path)
-        if os.path.exists(temp_text_image_path):
-            os.remove(temp_text_image_path)
 
         print(f"✅ Video successfully created and saved: {video_path}")
         return {
